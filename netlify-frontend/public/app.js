@@ -1,3 +1,6 @@
+// API Configuration
+const API_URL = 'https://mood-recipes-backend.onrender.com';
+
 let currentMood = '';
 let currentRecipe = null;
 let currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
@@ -185,30 +188,33 @@ function setMoodBadge(mood) {
 
 // Function to fetch a recipe
 async function fetchRecipe(mood) {
+    showLoading();
     try {
-        showLoading();
-        await new Promise(resolve => setTimeout(resolve, 500)); // Min loading time for UX
+        const dietaryRestrictions = document.getElementById('dietary-restrictions').value;
+        const cuisineType = document.getElementById('cuisine-type').value;
+        const maxTime = document.getElementById('max-time').value;
+
+        let url = `${API_URL}/api/recipe/${mood}`;
         
-        const params = new URLSearchParams({
-            dietary_restrictions: dietaryPrefs.value,
-            cuisine_type: cuisineType.value,
-            max_time: maxTime.value
-        });
+        // Add query parameters if they exist
+        const params = new URLSearchParams();
+        if (dietaryRestrictions) params.append('dietary_restrictions', dietaryRestrictions);
+        if (cuisineType) params.append('cuisine_type', cuisineType);
+        if (maxTime) params.append('max_time', maxTime);
         
-        // Use environment variable for API URL or fallback to localhost
-        const API_URL = window.API_URL || 'http://localhost:3000';
-        const response = await fetch(`${API_URL}/api/recipe/${mood}?${params}`);
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error('Failed to fetch recipe');
         }
-        
-        currentRecipe = data;
-        return data;
+        const recipe = await response.json();
+        displayRecipe(recipe);
+        playMoodMusic(mood);
     } catch (error) {
-        console.error('Error fetching recipe:', error);
-        return null;
+        console.error('Error:', error);
+        recipeContainer.innerHTML = '<p class="error">Failed to load recipe. Please try again.</p>';
     } finally {
         hideLoading();
     }
@@ -280,18 +286,24 @@ async function handleShoppingList() {
     if (!currentRecipe) return;
     
     try {
-        const response = await fetch(`http://localhost:3000/api/recipes/${currentRecipe.id}/shopping-list`);
+        const response = await fetch(`${API_URL}/api/recipes/${currentRecipe.id}/shopping-list`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch shopping list');
+        }
         const shoppingList = await response.json();
         
-        // Format and display shopping list (you could show this in a modal)
-        const formattedList = shoppingList.map(item => 
-            `${item.amount} ${item.item} ($${item.estimated_price})`
-        ).join('\n');
+        // Display shopping list in a modal or new section
+        const listHtml = shoppingList.map(item => 
+            `<li>${item.item} - ${item.amount} (Est. ${item.estimated_price})</li>`
+        ).join('');
         
-        alert('Shopping List:\n\n' + formattedList);
+        document.getElementById('shopping-list').innerHTML = `
+            <h3>Shopping List</h3>
+            <ul>${listHtml}</ul>
+        `;
     } catch (error) {
-        console.error('Error fetching shopping list:', error);
-        alert('Could not fetch shopping list');
+        console.error('Error:', error);
+        alert('Failed to load shopping list');
     }
 }
 
@@ -336,7 +348,7 @@ saveRecipeBtn.addEventListener('click', async () => {
         // Save to server if user is logged in
         if (currentUser) {
             try {
-                await fetch('http://localhost:3000/api/recipes/save', {
+                await fetch(`${API_URL}/api/recipes/save`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
