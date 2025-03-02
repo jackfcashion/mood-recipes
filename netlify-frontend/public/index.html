@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Recipes - Your Personal Food Mood Guide</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+    <script>
+        // Replace this with your Render.com backend URL
+        window.API_URL = 'https://your-app-name.onrender.com';
+    </script>
+    <style>
+        .mood-btn.active {
+            transform: scale(1.05);
+            transition: all 0.2s ease;
+        }
+        .recipe-card {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s ease forwards;
+        }
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">Mood Recipes</h1>
+            <div class="flex space-x-4">
+                <button id="login-btn" class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-user mr-2"></i>Login
+                </button>
+                <button id="saved-recipes-btn" class="text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-bookmark mr-2"></i>Saved Recipes
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <!-- User Preferences -->
+        <div class="preferences mb-8">
+            <h2 class="text-lg font-semibold mb-4">Your Preferences</h2>
+            <div class="preferences-grid">
+                <div class="form-group">
+                    <label for="dietary-prefs">Dietary Restrictions</label>
+                    <select id="dietary-prefs" class="form-select">
+                        <option value="">No restrictions</option>
+                        <option value="vegetarian">Vegetarian</option>
+                        <option value="vegan">Vegan</option>
+                        <option value="gluten-free">Gluten-free</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cuisine-type">Cuisine Type</label>
+                    <select id="cuisine-type" class="form-select">
+                        <option value="">Any cuisine</option>
+                        <option value="italian">Italian</option>
+                        <option value="mexican">Mexican</option>
+                        <option value="asian">Asian</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="max-time">Maximum Cooking Time</label>
+                    <select id="max-time" class="form-select">
+                        <option value="">Any time</option>
+                        <option value="30">30 minutes or less</option>
+                        <option value="60">1 hour or less</option>
+                        <option value="120">2 hours or less</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mood Selection -->
+        <div class="mood-buttons">
+            <button class="mood-btn" data-mood="happy">
+                <i class="fas fa-smile text-2xl mb-2"></i>
+                <span>Happy</span>
+            </button>
+            <button class="mood-btn" data-mood="sad">
+                <i class="fas fa-frown text-2xl mb-2"></i>
+                <span>Sad</span>
+            </button>
+            <button class="mood-btn" data-mood="excited">
+                <i class="fas fa-grin-stars text-2xl mb-2"></i>
+                <span>Excited</span>
+            </button>
+            <button class="mood-btn" data-mood="stressed">
+                <i class="fas fa-tired text-2xl mb-2"></i>
+                <span>Stressed</span>
+            </button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Recipe Display -->
+        <div id="recipe-container" class="hidden mt-8">
+            <div class="recipe-card">
+                <img id="recipe-image" class="recipe-image" src="" alt="Recipe">
+                <div class="recipe-content">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 id="recipe-name" class="text-2xl font-bold"></h2>
+                        <span id="mood-badge"></span>
+                    </div>
+                    
+                    <div class="recipe-meta">
+                        <span><i class="fas fa-clock mr-2"></i><span id="recipe-time"></span> mins</span>
+                        <span><i class="fas fa-utensils mr-2"></i><span id="recipe-difficulty"></span></span>
+                        <span><i class="fas fa-fire mr-2"></i><span id="recipe-calories"></span></span>
+                        <span id="recipe-rating"></span>
+                    </div>
+
+                    <div class="nutrition-facts">
+                        <div class="nutrition-item">
+                            <div class="nutrition-value" id="protein"></div>
+                            <div class="text-sm text-gray-600">Protein</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value" id="carbs"></div>
+                            <div class="text-sm text-gray-600">Carbs</div>
+                        </div>
+                        <div class="nutrition-item">
+                            <div class="nutrition-value" id="fat"></div>
+                            <div class="text-sm text-gray-600">Fat</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold mb-2">Ingredients</h3>
+                        <ul id="recipe-ingredients" class="ingredients-list"></ul>
+                    </div>
+
+                    <div class="mt-6">
+                        <h3 class="text-lg font-semibold mb-2">Instructions</h3>
+                        <ol id="recipe-instructions" class="instructions-list"></ol>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="new-recipe-btn" class="btn btn-primary">
+                            <i class="fas fa-random mr-2"></i>Get Another Recipe
+                        </button>
+                        <button id="save-recipe-btn" class="btn btn-secondary">
+                            <i class="far fa-bookmark mr-2"></i>Save Recipe
+                        </button>
+                        <button id="shopping-list-btn" class="btn btn-secondary">
+                            <i class="fas fa-shopping-cart mr-2"></i>Get Shopping List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 text-center text-gray-600">
+            Made with <i class="fas fa-heart text-red-500"></i> for food lovers
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html> 

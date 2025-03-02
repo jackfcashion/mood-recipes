@@ -1,0 +1,12 @@
+{
+  "name": "mood-recipes-frontend",
+  "version": "1.0.0",
+  "description": "A mood-based recipe recommendation app",
+  "main": "public/app.js",
+  "scripts": {
+    "start": "serve public"
+  },
+  "dependencies": {
+    "serve": "^14.2.1"
+  }
+} 
