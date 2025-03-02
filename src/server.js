@@ -10,14 +10,24 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Set database path based on environment
+const dbPath = process.env.NODE_ENV === 'production'
+    ? path.join('/tmp', 'recipes.db')
+    : path.join(__dirname, '..', 'database', 'recipes.db');
+
+// Ensure the parent directory exists
+const dbDir = path.dirname(dbPath);
+if (!require('fs').existsSync(dbDir)) {
+    require('fs').mkdirSync(dbDir, { recursive: true });
+}
+
 // Connect to SQLite database
-const dbPath = path.join(__dirname, '..', 'database', 'recipes.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error connecting to database:', err);
         return;
     }
-    console.log('Connected to the SQLite database');
+    console.log('Connected to the SQLite database at:', dbPath);
     
     // Create tables and insert sample data
     initializeDatabase();
